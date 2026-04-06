@@ -1,0 +1,19 @@
+# 依存パッケージ
+node_modules/
+dist/
+
+# 環境変数（絶対にコミットしない）
+.env
+.env.local
+.env.production
+
+# OS
+.DS_Store
+Thumbs.db
+
+# エディタ
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
