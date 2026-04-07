@@ -1,0 +1,25 @@
+{
+  "name": "頭痛ログ（Zutsu Log）",
+  "short_name": "頭痛ログ",
+  "description": "慢性頭痛患者向けの服薬管理アプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#4da6d9",
+  "background_color": "#f0faff",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
