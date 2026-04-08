@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ui/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
@@ -11,10 +11,23 @@ import DiaryPage from './pages/DiaryPage'
 import DiaryReportPage from './pages/DiaryReportPage'
 import CalendarPage from './pages/CalendarPage'
 import SettingsPage from './pages/SettingsPage'
+import { useNotificationScheduler } from './hooks/useNotificationScheduler'
+
+/**
+ * 認証状態を参照して通知スケジューラーを起動するコンポーネント
+ * AuthProvider の内側に置く必要があるため App とは別コンポーネントにする
+ */
+function NotificationScheduler() {
+  const { user } = useAuth()
+  useNotificationScheduler(user)
+  return null
+}
 
 function App() {
   return (
     <AuthProvider>
+      {/* ログイン済みのとき、服薬時刻に通知を出すスケジューラーを起動する */}
+      <NotificationScheduler />
       <BrowserRouter>
         <Routes>
           {/* 未認証でもアクセス可能なルート */}

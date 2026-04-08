@@ -9,10 +9,6 @@ const APP_VERSION = '0.0.1'
 
 // ローカルストレージのキー
 const LS_NOTIF_ENABLED = 'zutsu_notif_enabled'
-const LS_NOTIF_MORNING = 'zutsu_notif_morning'
-const LS_NOTIF_NOON    = 'zutsu_notif_noon'
-const LS_NOTIF_EVENING = 'zutsu_notif_evening'
-const LS_NOTIF_BEDTIME = 'zutsu_notif_bedtime'
 
 // ---- ユーティリティ ---------------------------------------------
 
@@ -28,27 +24,6 @@ function isPushSupported() {
     'serviceWorker' in navigator &&
     'PushManager' in window
   )
-}
-
-/**
- * ローカルストレージから通知設定を読み込む
- * 値が空文字の場合は「通知しない」（null）として扱う
- * @returns {object}
- */
-function loadNotifSettings() {
-  const read = (key, fallback) => {
-    const v = localStorage.getItem(key)
-    if (v === null) return fallback  // 未設定 → デフォルト値
-    if (v === '')   return null      // 空文字 → 通知しない
-    return v
-  }
-  return {
-    enabled: localStorage.getItem(LS_NOTIF_ENABLED) === 'true',
-    morning: read(LS_NOTIF_MORNING, '08:00'),
-    noon:    read(LS_NOTIF_NOON,    '12:00'),
-    evening: read(LS_NOTIF_EVENING, '18:00'),
-    bedtime: read(LS_NOTIF_BEDTIME, null),   // 就寝前はデフォルト「通知しない」
-  }
 }
 
 // ---- サブコンポーネント -----------------------------------------
@@ -105,56 +80,6 @@ function Toggle({ enabled, onChange, disabled = false }) {
   )
 }
 
-/**
- * 通知時刻の1行（「通知しない」ボタン + 時刻ピッカー）
- * @param {{ label: string, value: string|null, onChange: function, disabled: boolean, border: boolean }} props
- * value === null のとき「通知しない」が選択された状態
- */
-function NotifTimeRow({ label, value, onChange, disabled, border = true }) {
-  const isSkipped = value === null
-
-  return (
-    <div className={`py-3 flex items-center justify-between gap-3
-                     ${border ? 'border-b border-primary-light' : ''}`}>
-      {/* 左：タイミング名 */}
-      <span className="text-sm font-medium text-[#2c3e50] w-16 flex-shrink-0">{label}</span>
-
-      {/* 右：「通知しない」ボタン + 時刻ピッカー */}
-      <div className="flex items-center gap-2 flex-wrap justify-end">
-        {/* 通知しないトグルボタン */}
-        <button
-          type="button"
-          onClick={() => !disabled && onChange(isSkipped ? '08:00' : null)}
-          disabled={disabled}
-          className={`text-xs font-medium px-3 py-1.5 rounded-2xl border
-                      transition-colors duration-150 whitespace-nowrap
-                      ${isSkipped
-                        ? 'bg-[#b0bec5] text-white border-[#b0bec5]'
-                        : 'bg-primary-pale text-[#7f9aaa] border-primary-light'
-                      }
-                      ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
-        >
-          {isSkipped ? '✓ 通知しない' : '通知しない'}
-        </button>
-
-        {/* 時刻ピッカー（通知しない選択時は非表示） */}
-        {!isSkipped && (
-          <input
-            type="time"
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            disabled={disabled}
-            className={`rounded-xl border border-primary-light px-2 py-1.5 text-sm
-                        focus:outline-none focus:ring-2 focus:ring-primary-light
-                        text-[#2c3e50] w-28
-                        ${disabled ? 'opacity-40 cursor-not-allowed bg-primary-pale' : 'bg-white'}`}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
-
 // ---- メインコンポーネント ----------------------------------------
 
 export default function SettingsPage() {
@@ -162,13 +87,8 @@ export default function SettingsPage() {
   const pushSupported = isPushSupported()
 
   // 通知設定（ローカルストレージ）
-  // 時刻は string（HH:MM）または null（通知しない）
   const [notifEnabled, setNotifEnabled] = useState(false)
   const [notifPermission, setNotifPermission] = useState('default') // 'default'|'granted'|'denied'
-  const [morning, setMorning] = useState('08:00')
-  const [noon,    setNoon]    = useState('12:00')
-  const [evening, setEvening] = useState('18:00')
-  const [bedtime, setBedtime] = useState(null)
 
   // UI状態
   const [requestingPermission, setRequestingPermission] = useState(false)
@@ -178,13 +98,7 @@ export default function SettingsPage() {
 
   // 初期化：ローカルストレージから読み込む
   useEffect(() => {
-    const saved = loadNotifSettings()
-    setNotifEnabled(saved.enabled)
-    setMorning(saved.morning)
-    setNoon(saved.noon)
-    setEvening(saved.evening)
-    setBedtime(saved.bedtime)
-
+    setNotifEnabled(localStorage.getItem(LS_NOTIF_ENABLED) === 'true')
     if (pushSupported) {
       setNotifPermission(Notification.permission)
     }
@@ -215,17 +129,6 @@ export default function SettingsPage() {
     setNotifEnabled(next)
     localStorage.setItem(LS_NOTIF_ENABLED, String(next))
     showToast('success', next ? '通知をオンにしました' : '通知をオフにしました')
-  }
-
-  // ---- 時刻変更（value は string または null）------------------
-
-  const handleTimeChange = (key, value) => {
-    // null（通知しない）は空文字でlocalStorageに保存する
-    const stored = value ?? ''
-    if (key === 'morning') { setMorning(value); localStorage.setItem(LS_NOTIF_MORNING, stored) }
-    if (key === 'noon')    { setNoon(value);    localStorage.setItem(LS_NOTIF_NOON,    stored) }
-    if (key === 'evening') { setEvening(value); localStorage.setItem(LS_NOTIF_EVENING, stored) }
-    if (key === 'bedtime') { setBedtime(value); localStorage.setItem(LS_NOTIF_BEDTIME, stored) }
   }
 
   // ---- データリセット -------------------------------------------
@@ -314,7 +217,12 @@ export default function SettingsPage() {
 
                 <SettingRow
                   label="通知をオンにする"
-                  sub={notifPermission === 'granted' ? '許可済み' : '許可が必要です'}
+                  sub={
+                    notifPermission === 'granted'
+                      ? '薬ごとのスケジュール時刻に通知します'
+                      : '許可が必要です'
+                  }
+                  border={false}
                   right={
                     <Toggle
                       enabled={notifEnabled}
@@ -322,35 +230,6 @@ export default function SettingsPage() {
                       disabled={requestingPermission || notifPermission === 'denied'}
                     />
                   }
-                />
-
-                <NotifTimeRow
-                  label="朝"
-                  value={morning}
-                  onChange={v => handleTimeChange('morning', v)}
-                  disabled={!notifEnabled}
-                />
-
-                <NotifTimeRow
-                  label="昼"
-                  value={noon}
-                  onChange={v => handleTimeChange('noon', v)}
-                  disabled={!notifEnabled}
-                />
-
-                <NotifTimeRow
-                  label="夕"
-                  value={evening}
-                  onChange={v => handleTimeChange('evening', v)}
-                  disabled={!notifEnabled}
-                />
-
-                <NotifTimeRow
-                  label="就寝前"
-                  value={bedtime}
-                  onChange={v => handleTimeChange('bedtime', v)}
-                  disabled={!notifEnabled}
-                  border={false}
                 />
               </>
             )}
